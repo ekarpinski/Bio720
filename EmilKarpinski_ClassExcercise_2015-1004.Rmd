@@ -1,0 +1,179 @@
+---
+title: "Class Excercie"
+author: "Emil Karpinski"
+date: "September 29, 2015"
+output: html_document
+---
+This is an .html summary of my workflow for the **"Introduction to R Activities for Sept. 28th"** excercise available at <https://github.com/DworkinLab/Bio720/blob/master/R_exercises/R_exercise_InClass.md> produced by Dr. Ian Dworkin.
+
+
+Before begining the actual activity I needed to clear any a lot of past variables from my environment and set my working directory to my Bio720 folder
+
+```{r}
+rm(list=ls())
+setwd('C:/Users/Emil/Documents/Bio720')
+```
+
+Data files were ssh'd from Brian's machine from: */2/scratch/bio720_ID*
+
+The 4 files were then read into R-studio (ver: 0.99.484; R version: 3.2.2) using:
+
+```{r}
+M172.data <- read.table("M172_sm_male_hdhorn_ATCACG_L003_results.xprs", header=TRUE)
+M180.data <- read.table("M180_lg_male_hdhorn_CAGATC_L001_results.xprs", header=TRUE)
+M200.data <- read.table("M200_sm_male_hdhorn_ACAGTG_L008_results.xprs", header=TRUE)
+M257.data <- read.table("M257_lg_male_hdhorn_ATGTCA_L002_results.xprs", header=TRUE)
+```
+
+I then quickly examined the code using the ```fix``` and ```head``` functions, and confirmed the dimensions of the files were all identical with ```dim``` function. 
+
+These 4 files were then sorted based on their target ID and stored in new sorted tables using the commands below:
+
+```{r}
+sM172.data <- M172.data[order(M172.data$target_id),]
+sM180.data <- M180.data[order(M180.data$target_id),]
+sM200.data <- M200.data[order(M200.data$target_id),]
+sM257.data <- M257.data[order(M257.data$target_id),]
+```
+
+I ran ```dim``` and ```head``` on each of the files to confirm that everything worked as expected.
+
+Since we were only interested in the data present in the TPM column (column 15 in the original files), I used ```cbind``` to produce a new combined table (called comb_data) storing just the sorted TPM values for each specimen. 
+
+```{r}
+comb_data <- cbind(sM172.data[,15], sM180.data[,15], sM200.data[,15], sM257.data[,15])
+colnames(comb_data) <- c("M172_sm", "M180_lg", "M200_sm", "M257_lg")
+```
+
+To store the correlation values between each of the columns I created a new table called Ccomb_data. The command and associated output is below:
+
+```{r}
+Ccomb_data <- cor(comb_data)
+```
+```{r, echo=FALSE}
+Ccomb_data
+```
+
+I produced scatter plots comparing the sorted TPM of each files against each other in two seperate ways. 
+
+1. As an intial (more rough) approach, every pair of columns was plotted against each other manually using the ```plot``` function. A sample of this comparing the TPM values of M172 and M180 is below:
+```{r}
+plot(comb_data[,1], comb_data[,2])
+```
+
+While this method works fine, it is quite tedious and requires manually entering each column combination to produce individual graphs. 
+
+2. As a second approach, I found and used the ```pairs``` function to produce a consolidated image comparing each pair of TPM values. The command and output for this is available below:
+```{r}
+pairs(comb_data)
+```
+
+We were then tasked with pulling out the subset of genes/targets for which TPM row averages were greater than 10. To do this I created a new vector called row_means to store the output of the ```rowMeans``` function (the function calculates the average of rows in a matrix). I then again used ```cbind``` to append the row_means values to a new matrix called gene_means, and re-added in the target names.
+```{r}
+row_means <- rowMeans(comb_data)
+gene_means <- cbind(comb_data, row_means)
+rownames(gene_means) <- sM172.data$target_id
+```
+
+With my new matrix made, I exported a subset of entries into yet a new matrix (G10_means), based on if the entry in the row_means column was greater than 10. 
+```{r}
+G10_means <- subset(gene_means,row_means>10)
+```
+
+
+In the last part of the activity we were tasked with making an MA plot. Due to my lack of experience in working with RNA expression data and ignorance in what R packages might even allow for the creation of such a plot I followed the wikipedia link posted in the activity: <https://en.wikipedia.org/wiki/MA_plot>
+
+On the wikipedia page there were a few R packages listed:
+
+1. affy
+
+2. limma
+
+3. marray
+
+4. edgeR
+
+5. CRANR
+
+Unfortunetly, my attempts to install any of these packages were uncessfull returning the below error:
+```
+Warning in install.packages :
+package 'limma' is not available (for R version 3.2.2)
+```
+This led me to try the R website, but none of the suggested packages were listed as far as I could see. As such I decided to produce the necessary data manually. 
+*Disclaimer: There's a good chance I misunderstood the math or the data set somewhere, but the output looks right.*
+
+In preparation I created a new matrix for this task (NN_means), which was essentially a cleaned up version of the G10_means matrix, removing the target IDs and row_means as they are no longer necessary and troubleshooting more difficult.
+```{r}
+NN_means <- G10_means
+rownames(NN_means) <- NULL
+NN_means <- NN_means[,-5]
+```
+
+Due to the fact that we had 4 files across two treatment groups: "lg" (for large) and "sm" (for small), I assumed that the two files corresponding to each treatment were biological replicated and averaged the results. To do this I declared two new vectors (sm_means, and lg_means) to contain the averages of the TPM values for each target ID in eacn treatment group. I then constructed a ```for loop``` from 1 to ```nrow(NN_means)```, calculated the average of the  entries in the *n* row of the associated treatment columns, and appended that to either the sm_means or lg_means vectors. The full code for this can be found below:
+```{r}
+sm_means <- NULL
+lg_means <- NULL
+for (n in 1:nrow(NN_means))
+{
+  x <- 0
+  y <- 0
+  x <- (NN_means[n,1] + NN_means[n,3])/2
+  y <- (NN_means[n,2] + NN_means[n,4])/2
+  sm_means <- append(sm_means,x)
+  lg_means <- append(lg_means,y)
+}
+```
+For clarities sake and ease of use these vectors were then converted back to plain vectors using the function below, as they contained something called "Named num".
+```{r}
+sm_means <- as.vector(sm_means)
+lg_means <- as.vector(lg_means)
+```
+I used the ```cbind``` command to join the sm_means and lg_means vectors into a new matrix (SMvLG).
+```{r}
+SMvLG <- cbind(sm_means, lg_means)
+```
+
+I then set about manually calculating the *M* and *A* components of the MA plot. Using the wikipedia page as reference and the first few minutes of this youtube video: <https://www.youtube.com/watch?v=46-t2jOYsyY>, I tried to determine exactly what the *M* and *A* components were. It is my understanding that the *A* component represents the log base 2 average of the TPM of the two treatment groups, whereas the *M* component represents the difference between the log base 2 values of each treatment. With that framework I created two new vectors A and M. 
+
+A was calculated by again using the ```rowMeans``` command on the log2 values of our new SMvLG matrix:
+```{r}
+A <- rowMeans(log2(SMvLG))
+```
+
+Calculating M proved to be a little more challenging and required the use of another for loop to loop through the data and allow the difference of the log2 values for each row to be calculated. Differences were then appended to the M vector while looping through ```ncol(SMvLG)``` entries.
+```{r}
+M <- NULL
+for (i in 1:nrow(SMvLG))
+{
+ x <- NULL
+ x <- (log2(lg_means[i])-log2(sm_means[i]))
+ M <- append(M,x)
+}
+```
+
+With *A* and *M* calculated, plotting the MA plot was simply a matter of using the plot function again. 
+```{r}
+plot(A,M,main="LG versus SM Data")
+```
+
+---
+
+I have saved my full script with comments about what each step does and have uploaded it to my github. It is available here: <
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
