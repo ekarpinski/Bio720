@@ -9,7 +9,7 @@ This is an .html summary of my workflow for the **"Introduction to R Activities 
 
 Before begining the actual activity I needed to clear any a lot of past variables from my environment and set my working directory to my Bio720 folder
 
-```{r}
+```
 rm(list=ls())
 setwd('C:/Users/Emil/Documents/Bio720')
 ```
@@ -159,21 +159,12 @@ plot(A,M,main="LG versus SM Data")
 
 ---
 
-I have saved my full script with comments about what each step does and have uploaded it to my github. It is available here: <
+I have saved my full script with comments about what each step does and have uploaded it to my github. It is available here: <https://github.com/ekarpinski/Bio720>
 
+Associated files:
 
+Script: *RedoClassExcercise.R*
 
+Rmarkdown file: *EmilKarpinski_ClassExcercise_2015-1004.Rmd*
 
-
-
-
-
-
-
-
-
-
-
-
-
-
+Knitted HTML: *EmilKarpinski_ClassExcercise_2015-1004.html*
